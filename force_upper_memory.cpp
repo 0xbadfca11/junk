@@ -48,7 +48,7 @@ void AllocLowest4GB( DWORD process_id )
 			memory_info.BaseAddress,
 			memory_info.AllocationBase,
 			memory_info.RegionSize,
-			mem_state.find( memory_info.State )->second
+			mem_state.at( memory_info.State )
 			);
 		if( memory_info.State == MEM_FREE )
 		{
