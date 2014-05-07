@@ -1,3 +1,6 @@
+*.exe
+*.dll
+
 #################
 ## Visual Studio
 #################
@@ -29,7 +32,7 @@ build/
 *.meta
 *.obj
 *.pch
-*.pdb
+vc*.pdb
 *.pgc
 *.pgd
 *.rsp
@@ -46,6 +49,8 @@ build/
 *.pidb
 *.log
 *.scc
+*.nativecodeanalysis.xml
+*.cod
 
 # Visual C++ cache files
 ipch/
