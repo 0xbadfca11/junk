@@ -15,6 +15,7 @@
 #include <memory>
 #include <stdexcept>
 #include <tchar.h>
+#define _CRTDBG_MAP_ALLOC
 #include <crtdbg.h>
 #include <boost/scope_exit.hpp>
 #pragma comment(lib, "dbghelp")
@@ -171,13 +172,15 @@ private:
 };
 int __cdecl main( int argc, PSTR argv[] )
 {
+	_CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 	_CrtSetReportMode( _CRT_WARN, IsDebuggerPresent() ? _CRTDBG_MODE_DEBUG : _CRTDBG_MODE_FILE );
 	_CrtSetReportFile( _CRT_WARN, _CRTDBG_FILE_STDERR );
+
 	if( GetEnvironmentVariableW( L"_NT_SYMBOL_PATH", nullptr, 0 ) == 0 )
 		SetEnvironmentVariableW( L"_NT_SYMBOL_PATH", L"srv**http://msdl.microsoft.com/download/symbols" );
 	if( argc < 2 )
 	{
-		printf( "%s PID(-1 if self)", argv[0] );
+		printf( "%s PID(-1 if self)\n", argv[0] );
 		return EXIT_SUCCESS;
 	}
 	DWORD process_id = strtoul( argv[1], NULL, 10 );
