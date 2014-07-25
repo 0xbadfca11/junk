@@ -18,9 +18,9 @@ int __cdecl wmain( int argc, PWSTR argv[] )
 		auto export_directory = static_cast<PIMAGE_EXPORT_DIRECTORY>( ImageDirectoryEntryToDataEx( base_address, TRUE, IMAGE_DIRECTORY_ENTRY_EXPORT, &Size, NULL ) );
 		if( !export_directory )
 			continue;
-		auto AddressOfNames = reinterpret_cast<PULONG>( base_address + export_directory->AddressOfNames );
-		if( !AddressOfNames )
+		if( !export_directory->AddressOfNames )
 			continue;
+		auto AddressOfNames = reinterpret_cast<PULONG>( base_address + export_directory->AddressOfNames );
 		auto libfilename = PathFindFileNameW( argv[argc] );
 		WCHAR deffilename[MAX_PATH];
 		if( wcscpy_s( deffilename, libfilename ) )
