@@ -1,7 +1,7 @@
 #include <windows.h>
 #include <VersionHelpers.h>
 #include <stdexcept>
-#include <unordered_map>
+#include <map>
 #include <cstdio>
 #include <boost/optional.hpp>
 #include <boost/scope_exit.hpp>
@@ -11,7 +11,7 @@ typedef decltype( FILE_ATTRIBUTE_TAG_INFO::ReparseTag ) REPARSE_TAG;
 
 PCSTR ReparseTagToString( REPARSE_TAG tab_value )
 {
-	static const std::unordered_map<REPARSE_TAG, PCSTR> tag{ {
+	static const std::map<REPARSE_TAG, PCSTR> tag{ {
 			{ IO_REPARSE_TAG_MOUNT_POINT, "IO_REPARSE_TAG_MOUNT_POINT" },
 			{ IO_REPARSE_TAG_HSM, "IO_REPARSE_TAG_HSM" },
 			{ IO_REPARSE_TAG_HSM2, "IO_REPARSE_TAG_HSM2" },
@@ -35,10 +35,17 @@ PCSTR ReparseTagToString( REPARSE_TAG tab_value )
 		return nullptr;
 	}
 }
-boost::optional<REPARSE_TAG> ReadReparseTagByFindFile( PCWSTR filename )
+boost::optional<REPARSE_TAG> ReadReparseTagByFindFile( _In_z_ PCWSTR filename )
 {
 	WIN32_FIND_DATA find_data;
-	HANDLE find = FindFirstFileExW( filename, IsWindows7OrGreater() ? FindExInfoBasic : FindExInfoStandard, &find_data, FindExSearchNameMatch, nullptr, 0 );
+	HANDLE find = FindFirstFileExW(
+		filename,
+		IsWindows7OrGreater() ? FindExInfoBasic : FindExInfoStandard,
+		&find_data,
+		FindExSearchNameMatch,
+		nullptr,
+		0
+		);
 	if( find == INVALID_HANDLE_VALUE )
 		throw std::runtime_error( "FindFirstFileEx" );
 	BOOST_SCOPE_EXIT_ALL( find )
@@ -51,7 +58,7 @@ boost::optional<REPARSE_TAG> ReadReparseTagByFindFile( PCWSTR filename )
 		return boost::none;
 
 }
-boost::optional<REPARSE_TAG> ReadReparseTagByHandle( PCWSTR filename )
+boost::optional<REPARSE_TAG> ReadReparseTagByHandle( _In_z_ PCWSTR filename )
 {
 	HANDLE file = CreateFileW(
 		filename,
@@ -88,7 +95,7 @@ int __cdecl wmain( int argc, PWSTR argv[] )
 	LookupPrivilegeValue( NULL, SE_BACKUP_NAME, &token_privilege.Privileges[0].Luid );
 	token_privilege.PrivilegeCount = 1;
 	token_privilege.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-	AdjustTokenPrivileges( process_token, FALSE, &token_privilege, sizeof( TOKEN_PRIVILEGES ), NULL, NULL );
+	AdjustTokenPrivileges( process_token, FALSE, &token_privilege, sizeof token_privilege, NULL, NULL );
 	CloseHandle( process_token );
 
 	for( int i = 1; i < argc; ++i )
@@ -109,7 +116,7 @@ int __cdecl wmain( int argc, PWSTR argv[] )
 		}
 		catch( const std::runtime_error& e )
 		{
-			fputs( e.what(),stderr );
+			fputs( e.what(), stderr );
 			fputs( " failed\n", stderr );
 		}
 		fputs( "\tFindFirstFileEx: ", stdout );
