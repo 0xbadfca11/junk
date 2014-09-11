@@ -25,10 +25,11 @@
 #include <pshpack4.h>
 struct EXCEPTION_REGISTRATION_RECORD32
 {
-	ULONG32 Next;
-	ULONG32 Handler;
+	EXCEPTION_REGISTRATION_RECORD32* UPOINTER_32 Next;
+	EXCEPTION_ROUTINE* UPOINTER_32 Handler;
 };
 #include <poppack.h>
+static_assert( sizeof( EXCEPTION_REGISTRATION_RECORD32 ) == 8, "EXCEPTION_REGISTRATION_RECORD32 != 8" );
 struct _TEB
 {
 	NT_TIB Tib;
@@ -97,7 +98,7 @@ struct SEH_Walk
 #else
 			if( SuspendThread( thread ) == -1 )
 #endif
-				return;
+				throw std::runtime_error( "SuspendThread" );
 			BOOST_SCOPE_EXIT_ALL( this )
 			{
 				ResumeThread( thread );
@@ -111,7 +112,7 @@ struct SEH_Walk
 			Context.ContextFlags = CONTEXT_SEGMENTS;
 			if( !GetThreadContext( thread, &Context ) )
 #endif
-				return;
+				throw std::runtime_error( "GetThreadContext" );
 #ifdef _WIN64
 			WOW64_LDT_ENTRY ldtSel;
 			if( !Wow64GetThreadSelectorEntry( thread, Context.SegFs, &ldtSel ) )
@@ -119,24 +120,24 @@ struct SEH_Walk
 			LDT_ENTRY ldtSel;
 			if( !GetThreadSelectorEntry( thread, Context.SegFs, &ldtSel ) )
 #endif
-				return;
+				throw std::runtime_error( "GetThreadSelectorEntry" );
 			DWORD FS0 = ( ldtSel.HighWord.Bits.BaseHi << 24 ) | ( ldtSel.HighWord.Bits.BaseMid << 16 ) | ( ldtSel.BaseLow );
 			NT_TIB32 Tib;
 			if( !ReadProcessMemory( process, ULongToPtr( FS0 ), &Tib, sizeof Tib, nullptr ) )
-				return;
+				throw std::runtime_error( "ReadProcessMemory" );
 			EXCEPTION_REGISTRATION_RECORD32 exception_record;
-			for( ULONG32 record_address = Tib.ExceptionList; record_address != ULONG_MAX; record_address = exception_record.Next )
+			for( ULONG record_address = Tib.ExceptionList; record_address != ULONG_MAX; record_address = PtrToUlong( exception_record.Next ) )
 			{
 				if( !ReadProcessMemory( process, ULongToPtr( record_address ), &exception_record, sizeof exception_record, nullptr ) )
-					return;
-				auto module_file_name = GetModuleFileNameFromAddress( ULongToPtr( exception_record.Handler ) );
-				auto symbol = GetSymbolFromAddress( ULongToPtr( exception_record.Handler ) );
+					throw std::runtime_error( "ReadProcessMemory" );
+				auto module_file_name = GetModuleFileNameFromAddress( exception_record.Handler );
+				auto symbol = GetSymbolFromAddress( exception_record.Handler );
 				_tprintf(
 					_T( "Handler->%08lX(%ws!%s):Next->%08lX\n" ),
-					exception_record.Handler,
+					PtrToUlong( exception_record.Handler ),
 					module_file_name ? PathFindFileNameW( module_file_name.get() ) : nullptr,
 					symbol ? symbol.get() + FIELD_OFFSET( SYMBOL_INFO, Name ) : nullptr,
-					exception_record.Next
+					PtrToUlong( exception_record.Next )
 					);
 			}
 		}
