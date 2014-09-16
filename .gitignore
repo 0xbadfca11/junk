@@ -52,7 +52,6 @@ vc*.pdb
 *.scc
 *.nativecodeanalysis.xml
 *.cod
-*.def
 *.map
 
 # Visual C++ cache files
