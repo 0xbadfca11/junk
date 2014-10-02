@@ -25,15 +25,15 @@ int __cdecl main()
 	printf( "[% 8x] " __FUNCSIG__ "\n", GetCurrentThreadId() );
 
 	WaitForSingleObject( CreateThread( nullptr, 0, []( void* )->DWORD {
-		constexpr int count = 2;
+		constexpr int count = 3;
 		HANDLE thread[count * 2];
 		DWORD thread_id[ARRAYSIZE( thread )];
 
 		for( int i = 0; i < count; ++i )
 		{
-			int j = i * 2;
-			thread[j] = CreateThread( nullptr, 0, start_address, nullptr, 0, &thread_id[j] );
-			printf( "[% 8lx] CreateThread [% 8lx]\n", GetCurrentThreadId(), thread_id[j] );
+			DWORD thread_id;
+			thread[i * 2] = CreateThread( nullptr, 0, start_address, nullptr, 0, &thread_id );
+			printf( "[% 8lx] CreateThread [% 8lx]\n", GetCurrentThreadId(), thread_id );
 		}
 
 		auto dll = LoadLibraryW( Dll );
@@ -41,9 +41,9 @@ int __cdecl main()
 
 		for( int i = 0; i < count; ++i )
 		{
-			int j = i * 2 + 1;
-			thread[j] = CreateThread( nullptr, 0, start_address, nullptr, 0, &thread_id[j] );
-			printf( "[% 8lx] CreateThread [% 8lx]\n", GetCurrentThreadId(), thread_id[j] );
+			DWORD thread_id;
+			thread[i * 2 + 1] = CreateThread( nullptr, 0, start_address, nullptr, 0, &thread_id );
+			printf( "[% 8lx] CreateThread [% 8lx]\n", GetCurrentThreadId(), thread_id );
 		}
 
 		auto p = ( void(*)() )GetProcAddress( dll, "f" );
