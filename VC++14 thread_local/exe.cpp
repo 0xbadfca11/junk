@@ -4,7 +4,7 @@
 
 constexpr WCHAR Dll[] = L"dll";
 
-DWORD WINAPI start_address( void * )
+DWORD WINAPI start_address( void* )
 {
 	printf( "[% 8lx] " __FUNCSIG__ "\n", GetCurrentThreadId() );
 
@@ -36,6 +36,7 @@ int __cdecl main()
 			printf( "[% 8lx] CreateThread [% 8lx]\n", GetCurrentThreadId(), thread_id );
 		}
 
+		Sleep( 1 );
 		auto dll = LoadLibraryW( Dll );
 		assert( dll );
 
