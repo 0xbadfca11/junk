@@ -83,7 +83,7 @@ struct SEH_Walk
 				auto module_file_name = GetModuleFileNameFromAddress( address->Handler );
 				auto symbol = GetSymbolFromAddress( address->Handler );
 				_tprintf(
-					_T( "Handler->%p(%ws!%s):Next->%p\n" ),
+					_T( "Handler->%p(%ls!%s):Next->%p\n" ),
 					address->Handler,
 					module_file_name ? PathFindFileNameW( module_file_name.get() ) : nullptr,
 					symbol ? symbol.get() + FIELD_OFFSET( SYMBOL_INFO, Name ) : nullptr,
