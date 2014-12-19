@@ -14,10 +14,10 @@
 #include <exception>
 #include <memory>
 #include <stdexcept>
+#include <type_traits>
 #include <tchar.h>
 #define _CRTDBG_MAP_ALLOC
 #include <crtdbg.h>
-#include <boost/scope_exit.hpp>
 #pragma comment(lib, "dbghelp")
 #pragma comment(lib, "psapi")
 #pragma comment(lib, "shlwapi")
@@ -99,10 +99,7 @@ struct SEH_Walk
 			if( SuspendThread( thread ) == -1 )
 #endif
 				throw std::runtime_error( "SuspendThread" );
-			BOOST_SCOPE_EXIT_ALL( this )
-			{
-				ResumeThread( thread );
-			};
+			const std::shared_ptr<std::remove_pointer<HANDLE>::type> thread_wake( thread, ResumeThread );
 #ifdef _WIN64
 			WOW64_CONTEXT Context;
 			Context.ContextFlags = CONTEXT_SEGMENTS;
@@ -133,7 +130,7 @@ struct SEH_Walk
 				auto module_file_name = GetModuleFileNameFromAddress( exception_record.Handler );
 				auto symbol = GetSymbolFromAddress( exception_record.Handler );
 				_tprintf(
-					_T( "Handler->%08lX(%ws!%s):Next->%08lX\n" ),
+					_T( "Handler->%08lX(%ls!%s):Next->%08lX\n" ),
 					PtrToUlong( exception_record.Handler ),
 					module_file_name ? PathFindFileNameW( module_file_name.get() ) : nullptr,
 					symbol ? symbol.get() + FIELD_OFFSET( SYMBOL_INFO, Name ) : nullptr,
@@ -193,10 +190,7 @@ int __cdecl main( int argc, PSTR argv[] )
 	{
 		return EXIT_FAILURE;
 	}
-	BOOST_SCOPE_EXIT_ALL( th32 )
-	{
-		CloseHandle( th32 );
-	};
+	const std::shared_ptr<std::remove_pointer<HANDLE>::type> th32_close( th32, CloseHandle );
 	THREADENTRY32 thread_entry;
 	thread_entry.dwSize = sizeof( thread_entry );
 	if( !Thread32First( th32, &thread_entry ) )
@@ -218,7 +212,7 @@ int __cdecl main( int argc, PSTR argv[] )
 					printf( "ThreadId:  %lu\n", thread_entry.th32ThreadID );
 					SEH_Walk( process_id, thread_entry.th32ThreadID ).SEH_Chain_Walk();
 				}
-				catch( std::runtime_error& e )
+				catch( const std::runtime_error& e )
 				{
 					fputs( e.what(), stderr );
 					fputs( "\n", stderr );
@@ -226,7 +220,7 @@ int __cdecl main( int argc, PSTR argv[] )
 			}
 		} while( thread_entry.dwSize = sizeof( thread_entry ), Thread32Next( th32, &thread_entry ) );
 	}
-	catch( std::invalid_argument& e )
+	catch( const std::invalid_argument& e )
 	{
 		fputs( e.what(), stderr );
 	}

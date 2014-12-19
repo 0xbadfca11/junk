@@ -1,10 +1,10 @@
 #include <windows.h>
 #include <VersionHelpers.h>
-#include <stdexcept>
 #include <map>
+#include <memory>
+#include <stdexcept>
+#include <type_traits>
 #include <cstdio>
-#include <boost/optional.hpp>
-#include <boost/scope_exit.hpp>
 #pragma comment(lib, "advapi32")
 
 typedef decltype( FILE_ATTRIBUTE_TAG_INFO::ReparseTag ) REPARSE_TAG;
@@ -30,12 +30,12 @@ PCSTR ReparseTagToString( REPARSE_TAG tab_value )
 	{
 		return tag.at( tab_value );
 	}
-	catch( std::out_of_range& )
+	catch( const std::out_of_range& )
 	{
 		return nullptr;
 	}
 }
-boost::optional<REPARSE_TAG> ReadReparseTagByFindFile( _In_z_ PCWSTR filename )
+std::unique_ptr<REPARSE_TAG> ReadReparseTagByFindFile( _In_z_ PCWSTR filename )
 {
 	WIN32_FIND_DATA find_data;
 	HANDLE find = FindFirstFileExW(
@@ -48,17 +48,13 @@ boost::optional<REPARSE_TAG> ReadReparseTagByFindFile( _In_z_ PCWSTR filename )
 		);
 	if( find == INVALID_HANDLE_VALUE )
 		throw std::runtime_error( "FindFirstFileEx" );
-	BOOST_SCOPE_EXIT_ALL( find )
-	{
-		FindClose( find );
-	};
+	const std::shared_ptr<std::remove_pointer<HANDLE>::type> find_close( find, FindClose );
 	if( find_data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT )
-		return  find_data.dwReserved0;
+		return std::make_unique<REPARSE_TAG>( find_data.dwReserved0 );
 	else
-		return boost::none;
-
+		return nullptr;
 }
-boost::optional<REPARSE_TAG> ReadReparseTagByHandle( _In_z_ PCWSTR filename )
+std::unique_ptr<REPARSE_TAG> ReadReparseTagByHandle( _In_z_ PCWSTR filename )
 {
 	HANDLE file = CreateFileW(
 		filename,
@@ -71,17 +67,14 @@ boost::optional<REPARSE_TAG> ReadReparseTagByHandle( _In_z_ PCWSTR filename )
 		);
 	if( file == INVALID_HANDLE_VALUE )
 		throw std::runtime_error( "CreateFile" );
-	BOOST_SCOPE_EXIT_ALL( file )
-	{
-		CloseHandle( file );
-	};
+	const std::shared_ptr<std::remove_pointer<HANDLE>::type> file_close( file, CloseHandle );
 	FILE_ATTRIBUTE_TAG_INFO file_tag_info;
 	if( !GetFileInformationByHandleEx( file, FileAttributeTagInfo, &file_tag_info, sizeof file_tag_info ) )
 		throw std::runtime_error( "GetFileInformationByHandleEx" );
 	if( file_tag_info.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT )
-		return  file_tag_info.ReparseTag;
+		return std::make_unique<REPARSE_TAG>( file_tag_info.ReparseTag );
 	else
-		return boost::none;
+		return nullptr;
 }
 
 int __cdecl wmain( int argc, PWSTR argv[] )
