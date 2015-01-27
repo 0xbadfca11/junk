@@ -5,6 +5,8 @@
 #define _UNICODE
 #endif
 #define PSAPI_VERSION 1
+#define _CRT_STDIO_LEGACY_WIDE_SPECIFIERS
+#define _CRTDBG_MAP_ALLOC
 #include <windows.h>
 #include <dbghelp.h>
 #include <psapi.h>
@@ -16,7 +18,6 @@
 #include <stdexcept>
 #include <type_traits>
 #include <tchar.h>
-#define _CRTDBG_MAP_ALLOC
 #include <crtdbg.h>
 #pragma comment(lib, "dbghelp")
 #pragma comment(lib, "psapi")
