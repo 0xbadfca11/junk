@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <winternl.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
