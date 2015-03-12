@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-constexpr WCHAR Dll[] = L"dll";
+const WCHAR Dll[] = L"dll";
 
 DWORD WINAPI start_address( void* )
 {
@@ -27,7 +27,6 @@ int __cdecl main()
 	WaitForSingleObject( CreateThread( nullptr, 0, []( void* )->DWORD {
 		constexpr int count = 3;
 		HANDLE thread[count * 2];
-		DWORD thread_id[ARRAYSIZE( thread )];
 
 		for( int i = 0; i < count; ++i )
 		{

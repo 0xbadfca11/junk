@@ -2,30 +2,32 @@
 #include <stdio.h>
 #include <type_traits>
 
-struct s
+struct c
 {
-	s()
+	c()
 	{
 		printf( "[% 8lx] " __FUNCSIG__ "\n", GetCurrentThreadId() );
 	}
-	~s()
+	~c()
 	{
 		printf( "[% 8lx] " __FUNCSIG__ "\n", GetCurrentThreadId() );
 	}
 	int i = { 42 };
 };
-struct pod
+static_assert( !std::is_pod<c>::value, "non-POD" );
+struct p
 {
 	int i;
 };
-static_assert( std::is_pod<pod>::value, "pod must POD" );
+static_assert( std::is_pod<p>::value, "POD" );
 
-thread_local s s_;
-thread_local pod p_{ 42 };
-thread_local int i = 42;
+thread_local c c_;
+thread_local p p_{ 42 };
+thread_local int si = 42;
+thread_local int di = []{ return 42; }();
 void f()
 {
-	printf( "[% 8lx] " __FUNCSIG__ " constructor = %d pod = %d int = %d\n", GetCurrentThreadId(), s_.i, p_.i, i );
+	printf( "[% 8lx] " __FUNCSIG__ " non-pod = %d pod = %d dyn init int = %d, static init int = %d\n", GetCurrentThreadId(), c_.i, p_.i, di, si );
 }
 //* printf might be DllMain rule violation */
 BOOL WINAPI DllMain( HINSTANCE, DWORD dwReason, LPVOID )

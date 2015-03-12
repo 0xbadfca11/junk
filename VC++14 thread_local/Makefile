@@ -1,4 +1,4 @@
-CPPFLAGS = /nologo /GR- /MD /O2y- /Zi
+CPPFLAGS = /nologo /GR- /MD /O2y- /W4 /Zi
 LFLAGS = /nologo /DEBUG /INCREMENTAL:NO /MANIFEST:NO /PDBALTPATH:%_PDB% /RELEASE
 
 run: exe.exe dll.dll
