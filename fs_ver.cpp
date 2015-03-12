@@ -80,7 +80,7 @@ int __cdecl wmain( int argc, PWSTR argv[] )
 		WCHAR fs_name_buffer[MAX_PATH + 1];
 		if( DeviceIoControl( f, FSCTL_GET_REFS_VOLUME_DATA, nullptr, 0, &refs_buffer, sizeof refs_buffer, &dummy, nullptr ) )
 		{
-			printf( "%ls == ReFS %u.%u\n", mount_point.get(), refs_buffer.MajorVersion, refs_buffer.MinorVersion );
+			printf( "%ls == ReFS %lu.%lu\n", mount_point.get(), refs_buffer.MajorVersion, refs_buffer.MinorVersion );
 			continue;
 		}
 		else if( DeviceIoControl( f, FSCTL_GET_NTFS_VOLUME_DATA, nullptr, 0, &ntfs_buffer, sizeof ntfs_buffer, &dummy, nullptr ) )
