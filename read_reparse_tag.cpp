@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <atlbase.h>
 #include <VersionHelpers.h>
 #include <map>
 #include <memory>
@@ -30,11 +31,12 @@ PCSTR ReparseTagToString( REPARSE_TAG tab_value )
 			{ 0x80000005, "IO_REPARSE_TAG_DRIVER_EXTENDER" },
 			{ 0x8000000B, "IO_REPARSE_TAG_FILTER_MANAGER" },
 			} };
-	try
+	auto it = tag.find( tab_value );
+	if( it != tag.end() )
 	{
-		return tag.at( tab_value );
+		return it->second;
 	}
-	catch( const std::out_of_range& )
+	else
 	{
 		return nullptr;
 	}
@@ -52,7 +54,7 @@ std::unique_ptr<REPARSE_TAG> ReadReparseTagByFindFile( _In_z_ PCWSTR filename )
 		);
 	if( find == INVALID_HANDLE_VALUE )
 		throw std::runtime_error( "FindFirstFileEx" );
-	const std::shared_ptr<std::remove_pointer<HANDLE>::type> find_close( find, FindClose );
+	FindClose( find );
 	if( find_data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT )
 		return std::make_unique<REPARSE_TAG>( find_data.dwReserved0 );
 	else
@@ -71,7 +73,7 @@ std::unique_ptr<REPARSE_TAG> ReadReparseTagByHandle( _In_z_ PCWSTR filename )
 		);
 	if( file == INVALID_HANDLE_VALUE )
 		throw std::runtime_error( "CreateFile" );
-	const std::shared_ptr<std::remove_pointer<HANDLE>::type> file_close( file, CloseHandle );
+	ATL::CHandle file_close( file );
 	FILE_ATTRIBUTE_TAG_INFO file_tag_info;
 	if( !GetFileInformationByHandleEx( file, FileAttributeTagInfo, &file_tag_info, sizeof file_tag_info ) )
 		throw std::runtime_error( "GetFileInformationByHandleEx" );
