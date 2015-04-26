@@ -5,7 +5,6 @@
 #include <cstdio>
 #include <memory>
 #include <crtdbg.h>
-#pragma comment(lib, "pathcch")
 
 std::unique_ptr<WCHAR[]> GetWindowsError( ULONG error_code = GetLastError() )
 {
@@ -18,7 +17,7 @@ std::unique_ptr<WCHAR[]> GetWindowsError( ULONG error_code = GetLastError() )
 }
 void PrintfWindowsError( ULONG error_code = GetLastError() )
 {
-	fputws( GetWindowsError( error_code ).get(), stderr );
+	fwprintf( stderr, L"%ls", GetWindowsError( error_code ).get() );
 }
 
 int __cdecl wmain( int argc, PWSTR argv[] )
@@ -27,21 +26,13 @@ int __cdecl wmain( int argc, PWSTR argv[] )
 	_CrtSetReportFile( _CRT_WARN, _CRTDBG_FILE_STDERR );
 	_CrtSetReportMode( _CRT_WARN, _CRTDBG_MODE_DEBUG | _CRTDBG_MODE_FILE );
 	setlocale( LC_ALL, "" );
-	auto canonicalize_path = std::make_unique<WCHAR[]>( PATHCCH_MAX_CCH );
 	auto mount_point = std::make_unique<WCHAR[]>( PATHCCH_MAX_CCH );
 	WCHAR guid_path[50];
 	for( int i = 1; i < argc; ++i )
 	{
 		_RPT2( _CRT_WARN, "argv[%d] == %ls\n", i, argv[i] );
 
-		if( FAILED( PathCchCanonicalizeEx( canonicalize_path.get(), PATHCCH_MAX_CCH, argv[i], PATHCCH_ALLOW_LONG_PATHS ) ) )
-		{
-			PrintfWindowsError();
-			continue;
-		}
-		_RPT1( _CRT_WARN, "PathCchCanonicalizeEx() == %ls\n", canonicalize_path.get() );
-
-		if( !GetVolumePathNameW( canonicalize_path.get(), mount_point.get(), PATHCCH_MAX_CCH ) )
+		if( !GetVolumePathNameW( argv[i], mount_point.get(), PATHCCH_MAX_CCH ) )
 		{
 			PrintfWindowsError();
 			continue;
@@ -53,16 +44,10 @@ int __cdecl wmain( int argc, PWSTR argv[] )
 			PrintfWindowsError();
 			continue;
 		}
-		PWCHAR end_bslash;
-		if( FAILED( PathCchRemoveBackslashEx( guid_path, ARRAYSIZE( guid_path ), &end_bslash, nullptr ) ) )
-		{
-			PrintfWindowsError();
-			continue;
-		}
-		*end_bslash = L'\0';
+		*wcsrchr( guid_path, L'\\' ) = L'\0';
 		_RPT1( _CRT_WARN, "GetVolumeNameForVolumeMountPoint() == %ls\n", guid_path );
 
-		auto f = CreateFileW( guid_path, FILE_EXECUTE, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr );
+		auto f = CreateFileW( guid_path, MAXIMUM_ALLOWED, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr );
 		if( f == INVALID_HANDLE_VALUE )
 		{
 			PrintfWindowsError();
@@ -85,7 +70,14 @@ int __cdecl wmain( int argc, PWSTR argv[] )
 		}
 		else if( DeviceIoControl( f, FSCTL_GET_NTFS_VOLUME_DATA, nullptr, 0, &ntfs_buffer, sizeof ntfs_buffer, &dummy, nullptr ) )
 		{
-			printf( "%ls == NTFS %u.%u\n", mount_point.get(), ntfs_buffer.extended.MajorVersion, ntfs_buffer.extended.MinorVersion );
+			if( dummy >= ( RTL_SIZEOF_THROUGH_FIELD( decltype( ntfs_buffer ), extended.MinorVersion ) ) )
+			{
+				printf( "%ls == NTFS %u.%u\n", mount_point.get(), ntfs_buffer.extended.MajorVersion, ntfs_buffer.extended.MinorVersion );
+			}
+			else
+			{
+				printf( "%ls == NTFS unknown version\n", mount_point.get() );
+			}
 			continue;
 		}
 		else if( DeviceIoControl( f, FSCTL_QUERY_ON_DISK_VOLUME_INFO, nullptr, 0, &udf_buffer, sizeof udf_buffer, &dummy, nullptr ) )
