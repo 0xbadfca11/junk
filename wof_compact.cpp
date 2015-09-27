@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <winioctl.h>
+#include <stddef.h>
 
 struct WOF
 {

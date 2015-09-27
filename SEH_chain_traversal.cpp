@@ -5,9 +5,10 @@
 #define _UNICODE
 #endif
 #define PSAPI_VERSION 1
-#define _CRT_STDIO_LEGACY_WIDE_SPECIFIERS
+#define _ATL_NO_AUTOMATIC_NAMESPACE
 #define _CRTDBG_MAP_ALLOC
 #include <windows.h>
+#include <atlbase.h>
 #include <dbghelp.h>
 #include <psapi.h>
 #include <shlwapi.h>
@@ -72,8 +73,6 @@ struct SEH_Walk
 	~SEH_Walk()
 	{
 		SymCleanup( process );
-		CloseHandle( thread );
-		CloseHandle( process );
 	}
 	void SEH_Chain_Walk() const
 	{
@@ -87,7 +86,7 @@ struct SEH_Walk
 					_T( "Handler->%p(%ls!%s):Next->%p\n" ),
 					address->Handler,
 					module_file_name ? PathFindFileNameW( module_file_name.get() ) : nullptr,
-					symbol ? symbol.get() + FIELD_OFFSET( SYMBOL_INFO, Name ) : nullptr,
+					symbol ? reinterpret_cast<_TCHAR*>( symbol.get() + FIELD_OFFSET( SYMBOL_INFO, Name ) ) : nullptr,
 					address->Next
 					);
 			}
@@ -100,7 +99,7 @@ struct SEH_Walk
 			if( SuspendThread( thread ) == -1 )
 #endif
 				throw std::runtime_error( "SuspendThread" );
-			const std::shared_ptr<std::remove_pointer<HANDLE>::type> thread_wake( thread, ResumeThread );
+			const std::shared_ptr<std::remove_pointer<HANDLE>::type> thread_wake( HANDLE( thread ), ResumeThread );
 #ifdef _WIN64
 			WOW64_CONTEXT Context;
 			Context.ContextFlags = CONTEXT_SEGMENTS;
@@ -134,7 +133,7 @@ struct SEH_Walk
 					_T( "Handler->%08lX(%ls!%s):Next->%08lX\n" ),
 					PtrToUlong( exception_record.Handler ),
 					module_file_name ? PathFindFileNameW( module_file_name.get() ) : nullptr,
-					symbol ? symbol.get() + FIELD_OFFSET( SYMBOL_INFO, Name ) : nullptr,
+					symbol ? reinterpret_cast<_TCHAR*>( symbol.get() + FIELD_OFFSET( SYMBOL_INFO, Name ) ) : nullptr,
 					PtrToUlong( exception_record.Next )
 					);
 			}
@@ -142,9 +141,9 @@ struct SEH_Walk
 	}
 protected:
 	const DWORD process_id;
-	const HANDLE process;
+	const ATL::CHandle process;
 	const DWORD thread_id;
-	const HANDLE thread;
+	const ATL::CHandle thread;
 	std::unique_ptr<WCHAR[]> GetModuleFileNameFromAddress( _In_ PVOID address ) const
 	{
 		auto module_file_name = std::make_unique<WCHAR[]>( MAX_PATH );
@@ -166,8 +165,8 @@ protected:
 			return nullptr;
 	}
 private:
-	SEH_Walk( const SEH_Walk& );
-	SEH_Walk& operator=( const SEH_Walk& );
+	SEH_Walk( const SEH_Walk& ) = delete;
+	SEH_Walk& operator=( const SEH_Walk& ) = delete;
 };
 int __cdecl main( int argc, PSTR argv[] )
 {
@@ -191,7 +190,7 @@ int __cdecl main( int argc, PSTR argv[] )
 	{
 		return EXIT_FAILURE;
 	}
-	const std::shared_ptr<std::remove_pointer<HANDLE>::type> th32_close( th32, CloseHandle );
+	const ATL::CHandle th32_close( th32 );
 	THREADENTRY32 thread_entry;
 	thread_entry.dwSize = sizeof( thread_entry );
 	if( !Thread32First( th32, &thread_entry ) )
@@ -202,7 +201,7 @@ int __cdecl main( int argc, PSTR argv[] )
 	{
 		do
 		{
-			if( thread_entry.dwSize < FIELD_OFFSET( THREADENTRY32, th32OwnerProcessID ) + sizeof( thread_entry.th32OwnerProcessID ) )
+			if( thread_entry.dwSize < RTL_SIZEOF_THROUGH_FIELD( THREADENTRY32, th32OwnerProcessID ) )
 			{
 				continue;
 			}

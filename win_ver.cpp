@@ -1,7 +1,8 @@
 #include <windows.h>
-#include <VersionHelpers.h>
+#include <versionhelpers.h>
 #include <winternl.h>
 #include <cstdio>
+#include <cstdlib>
 #pragma comment(lib, "ntdll")
 
 EXTERN_C NTSYSAPI NTSTATUS NTAPI RtlGetVersion( _Inout_ POSVERSIONINFOW );

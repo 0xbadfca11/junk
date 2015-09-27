@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <atlbase.h>
 #include <winternl.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -12,14 +13,14 @@
 EXTERN_C NTSYSAPI NTSTATUS NTAPI NtSuspendProcess( _In_ HANDLE ProcessHandle );
 EXTERN_C NTSYSAPI NTSTATUS NTAPI NtResumeProcess( _In_ HANDLE ProcessHandle );
 
-uintptr_t ceil( uintptr_t x, size_t y )
+uintptr_t inline ceil( uintptr_t x, size_t y )
 {
 	return ( x + y - 1 ) / y * y;
 }
 void AllocLowest4GB( DWORD process_id )
 {
 	bool is_me = process_id == GetCurrentProcessId();
-	HANDLE process = OpenProcess( PROCESS_QUERY_INFORMATION | PROCESS_SUSPEND_RESUME | PROCESS_VM_OPERATION, FALSE, process_id );
+	ATL::CHandle process{ OpenProcess( PROCESS_QUERY_INFORMATION | PROCESS_SUSPEND_RESUME | PROCESS_VM_OPERATION, FALSE, process_id ) };
 	if( !process )
 	{
 		fprintf( stderr, "!OpenProcess\n" );
@@ -41,6 +42,7 @@ void AllocLowest4GB( DWORD process_id )
 	UINT_PTR address = reinterpret_cast<UINT_PTR>( system_info.lpMinimumApplicationAddress );
 	do
 	{
+		reanalysis:
 		if( !VirtualQueryEx( process, reinterpret_cast<PVOID>( address ), &memory_info, sizeof memory_info ) )
 			break;
 		_RPT5(
@@ -63,11 +65,11 @@ void AllocLowest4GB( DWORD process_id )
 				MEM_RESERVE,
 				PAGE_NOACCESS
 				);
+			goto reanalysis;
 		}
 	} while( SUCCEEDED( UIntPtrAdd( address, ceil( memory_info.RegionSize, system_info.dwAllocationGranularity ), &address ) ) && address <= UINT32_MAX );
 	if( !is_me )
 		NtResumeProcess( process );
-	CloseHandle( process );
 }
 int __cdecl main( int argc, PSTR argv[] )
 {

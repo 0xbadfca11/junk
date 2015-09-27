@@ -13,12 +13,19 @@ struct StorageResiliency
 	const ATL::CHandle file_handle{};
 	using CopiesType = decltype( STORAGE_DEVICE_RESILIENCY_DESCRIPTOR::NumberOfPhysicalCopies );
 	const CopiesType CopiesCount = 0;
-	StorageResiliency( PCWSTR lpFileName, ULONG dwDesiredAccess, ULONG dwShareMode, ULONG dwCreationDisposition, ULONG dwFlagsAndAttributes = FILE_ATTRIBUTE_NORMAL, LPSECURITY_ATTRIBUTES lpSecurityAttributes = nullptr, HANDLE hTemplateFile = nullptr )
+	StorageResiliency(
+		PCWSTR lpFileName,
+		ULONG dwDesiredAccess,
+		ULONG dwShareMode,
+		ULONG dwCreationDisposition,
+		ULONG dwFlagsAndAttributes = FILE_ATTRIBUTE_NORMAL,
+		LPSECURITY_ATTRIBUTES lpSecurityAttributes = nullptr,
+		HANDLE hTemplateFile = nullptr
+		)
 	{
-		const_cast<ATL::CHandle&>(file_handle).Attach( CreateFileW( lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes | FILE_FLAG_NO_BUFFERING, hTemplateFile ) );
-		if( file_handle == INVALID_HANDLE_VALUE )
+		const_cast<ATL::CHandle&>( file_handle ).Attach( Create( lpFileName, dwDesiredAccess, dwShareMode, dwCreationDisposition, dwFlagsAndAttributes | FILE_FLAG_NO_BUFFERING, lpSecurityAttributes, hTemplateFile ) );
+		if( !file_handle )
 		{
-			const_cast<ATL::CHandle&>( file_handle ).Detach();
 			ATL::AtlThrowLastWin32();
 		}
 		auto path = std::make_unique<WCHAR[]>( PATHCCH_MAX_CCH );
@@ -33,10 +40,9 @@ struct StorageResiliency
 		}
 		*wcsrchr( volume_GUID, L'\\' ) = L'\0';
 		ATL::CHandle volume_handle{};
-		volume_handle.Attach( CreateFileW( volume_GUID, 0, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_FLAG_NO_BUFFERING, nullptr ) );
-		if( volume_handle == INVALID_HANDLE_VALUE )
+		volume_handle.Attach( Create( volume_GUID, 0, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_EXISTING, FILE_FLAG_NO_BUFFERING, nullptr, nullptr ) );
+		if( !volume_handle )
 		{
-			volume_handle.Detach();
 			ATL::AtlThrowLastWin32();
 		}
 		STORAGE_PROPERTY_QUERY storage_query = { StorageDeviceResiliencyProperty, PropertyStandardQuery };
@@ -44,8 +50,22 @@ struct StorageResiliency
 		ULONG junk;
 		if( DeviceIoControl( volume_handle, IOCTL_STORAGE_QUERY_PROPERTY, &storage_query, sizeof storage_query, &storage_resiliency, sizeof storage_resiliency, &junk, nullptr ) )
 			const_cast<CopiesType&>( CopiesCount ) = storage_resiliency.NumberOfPhysicalCopies;
+	}
+	HANDLE Create(
+		PCWSTR lpFileName,
+		ULONG dwDesiredAccess,
+		ULONG dwShareMode,
+		ULONG dwCreationDisposition,
+		ULONG dwFlagsAndAttributes,
+		LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+		HANDLE hTemplateFile
+		)
+	{
+		HANDLE h = CreateFileW( lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes | FILE_FLAG_NO_BUFFERING, hTemplateFile );
+		if( h == INVALID_HANDLE_VALUE )
+			return nullptr;
 		else
-			const_cast<CopiesType&>( CopiesCount ) = 1;
+			return h;
 	}
 	operator HANDLE() const noexcept
 	{
@@ -125,7 +145,7 @@ int wmain( int argc, PWSTR argv[] )
 		}
 		puts( hash_stringize );
 	}
-	if( !stor_res.ResetCopy() )
+	if( stor_res.CopiesCount && !stor_res.ResetCopy() )
 	{
 		ATL::AtlThrowLastWin32();
 	}
