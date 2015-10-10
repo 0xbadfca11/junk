@@ -109,7 +109,7 @@ int wmain( int argc, PWSTR argv[] )
 	if( !GetFileSizeEx( stor_res, &fsize ) )
 		std::quick_exit( EXIT_FAILURE );
 	ULONG msize = (ULONG)std::min<ULONG64>( fsize.QuadPart, 128 * 1024 * 1024 );
-	PVOID buf = VirtualAlloc( nullptr, msize, MEM_COMMIT, PAGE_READWRITE );
+	PVOID buf = VirtualAlloc( nullptr, msize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE );
 	if( !buf )
 		std::quick_exit( EXIT_FAILURE );
 	ULONG result;
