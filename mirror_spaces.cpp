@@ -10,7 +10,7 @@
 
 struct StorageResiliency
 {
-	const ATL::CHandle file_handle{};
+	const ATL::CHandle file_handle;
 	using CopiesType = decltype( STORAGE_DEVICE_RESILIENCY_DESCRIPTOR::NumberOfPhysicalCopies );
 	const CopiesType CopiesCount = 0;
 	StorageResiliency(
@@ -39,7 +39,7 @@ struct StorageResiliency
 			ATL::AtlThrowLastWin32();
 		}
 		*wcsrchr( volume_GUID, L'\\' ) = L'\0';
-		ATL::CHandle volume_handle{};
+		ATL::CHandle volume_handle;
 		volume_handle.Attach( Create( volume_GUID, 0, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_EXISTING, FILE_FLAG_NO_BUFFERING, nullptr, nullptr ) );
 		if( !volume_handle )
 		{
@@ -61,7 +61,7 @@ struct StorageResiliency
 		HANDLE hTemplateFile
 		)
 	{
-		HANDLE h = CreateFileW( lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes | FILE_FLAG_NO_BUFFERING, hTemplateFile );
+		HANDLE h = CreateFileW( lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile );
 		if( h == INVALID_HANDLE_VALUE )
 			return nullptr;
 		else
@@ -129,7 +129,7 @@ int wmain( int argc, PWSTR argv[] )
 			ATL::AtlThrowLastWin32();
 		}
 		ULONG read;
-		OVERLAPPED o{};
+		OVERLAPPED o = {};
 		if( !ReadFile( stor_res, buf, msize, &read, &o ) )
 			std::quick_exit( EXIT_FAILURE );
 		ATL::CTempBuffer<BYTE> hash{ hash_size };
