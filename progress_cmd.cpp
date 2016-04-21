@@ -12,22 +12,22 @@ struct ProgressTaskBar
 	ATL::CComPtr<ITaskbarList3> TaskbarList;
 	HWND hwnd;
 	ULONGLONG Total;
-	ProgressTaskBar( __RPC__in HWND hwnd, ULONGLONG Total )
-		: hwnd( hwnd )
-		, Total( Total )
+	ProgressTaskBar(__RPC__in HWND hwnd, ULONGLONG Total)
+		: hwnd(hwnd)
+		, Total(Total)
 	{
-		if( FAILED( CoInitialize( nullptr ) ) )
+		if (FAILED(CoInitialize(nullptr)))
 			ATL::AtlThrowLastWin32();
-		if( FAILED( TaskbarList.CoCreateInstance( CLSID_TaskbarList ) ) )
+		if (FAILED(TaskbarList.CoCreateInstance(CLSID_TaskbarList)))
 			ATL::AtlThrowLastWin32();
 	}
 	~ProgressTaskBar()
 	{
-		TaskbarList->SetProgressState( hwnd, TBPF_NOPROGRESS );
+		TaskbarList->SetProgressState(hwnd, TBPF_NOPROGRESS);
 	}
-	void SetProgressValue( ULONGLONG Completed )
+	void SetProgressValue(ULONGLONG Completed)
 	{
-		TaskbarList->SetProgressValue( hwnd, Completed, Total );
+		TaskbarList->SetProgressValue(hwnd, Completed, Total);
 	}
 };
 
@@ -35,9 +35,9 @@ int main()
 {
 	const ULONGLONG count = 1000;
 	ProgressTaskBar cmd_bar{ GetConsoleWindow(), count };
-	for( int i = 0; i <= count; ++i )
+	for (int i = 0; i <= count; ++i)
 	{
-		cmd_bar.SetProgressValue( i );
-		Sleep( 1 );
+		cmd_bar.SetProgressValue(i);
+		Sleep(1);
 	}
 }
