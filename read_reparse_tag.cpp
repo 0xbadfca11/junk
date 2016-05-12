@@ -16,6 +16,7 @@ PCSTR ReparseTagToString(REPARSE_TAG tab_value)
 	static const std::map<REPARSE_TAG, PCSTR> tag{ {
 			TAG_MAP(IO_REPARSE_TAG_RESERVED_ZERO),
 			TAG_MAP(IO_REPARSE_TAG_RESERVED_ONE),
+			TAG_MAP(IO_REPARSE_TAG_RESERVED_TWO),
 			TAG_MAP(IO_REPARSE_TAG_MOUNT_POINT),
 			TAG_MAP(IO_REPARSE_TAG_HSM),
 			TAG_MAP(IO_REPARSE_TAG_HSM2),
@@ -31,8 +32,12 @@ PCSTR ReparseTagToString(REPARSE_TAG tab_value)
 			TAG_MAP(IO_REPARSE_TAG_WOF),
 			TAG_MAP(IO_REPARSE_TAG_WCI),
 			TAG_MAP(IO_REPARSE_TAG_GLOBAL_REPARSE),
+			TAG_MAP(IO_REPARSE_TAG_CLOUD),
+			TAG_MAP(IO_REPARSE_TAG_APPEXECLINK),
+			TAG_MAP(IO_REPARSE_TAG_GVFS),
 			{ 0x80000005, "IO_REPARSE_TAG_DRIVER_EXTENDER" },
 			{ 0x8000000B, "IO_REPARSE_TAG_FILTER_MANAGER" },
+			{ 0xA000001D, "(Linux Subsystem Symbolic Link on DriveFs)" },
 			} };
 	auto it = tag.find(tab_value);
 	if (it != tag.end())
@@ -65,7 +70,7 @@ std::unique_ptr<REPARSE_TAG> ReadReparseTagByFindFile(_In_z_ PCWSTR filename)
 }
 std::unique_ptr<REPARSE_TAG> ReadReparseTagByHandle(_In_z_ PCWSTR filename)
 {
-	HANDLE file = CreateFileW(
+	ATL::CHandle file(CreateFileW(
 		filename,
 		GENERIC_READ,
 		FILE_SHARE_READ,
@@ -73,10 +78,12 @@ std::unique_ptr<REPARSE_TAG> ReadReparseTagByHandle(_In_z_ PCWSTR filename)
 		OPEN_EXISTING,
 		FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
 		nullptr
-	);
+	));
 	if (file == INVALID_HANDLE_VALUE)
+	{
+		file.Detach();
 		throw std::runtime_error("CreateFile");
-	ATL::CHandle file_close(file);
+	}
 	FILE_ATTRIBUTE_TAG_INFO file_tag_info;
 	if (!GetFileInformationByHandleEx(file, FileAttributeTagInfo, &file_tag_info, sizeof file_tag_info))
 		throw std::runtime_error("GetFileInformationByHandleEx");
