@@ -37,7 +37,10 @@ PCSTR ReparseTagToString(REPARSE_TAG tab_value)
 			TAG_MAP(IO_REPARSE_TAG_GVFS),
 			{ 0x80000005, "IO_REPARSE_TAG_DRIVER_EXTENDER" },
 			{ 0x8000000B, "IO_REPARSE_TAG_FILTER_MANAGER" },
-			{ 0xA000001D, "(Linux Subsystem Symbolic Link on DriveFs)" },
+			{ 0xA0000010, "IO_REPARSE_TAG_IIS_CACHE" },
+			{ 0xC0000014, "IO_REPARSE_TAG_APPXSTRM" },
+			{ 0x80000016, "IO_REPARSE_TAG_DFM" },
+			{ 0xA000001D, "IO_REPARSE_TAG_LX_SYMLINK" },
 			} };
 	auto it = tag.find(tab_value);
 	if (it != tag.end())
