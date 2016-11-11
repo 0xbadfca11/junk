@@ -25,7 +25,7 @@ int __cdecl main()
 	printf("[% 8x] " __FUNCSIG__ "\n", GetCurrentThreadId());
 
 	WaitForSingleObject(CreateThread(nullptr, 0, [](void*)->DWORD {
-		constexpr int count = 3;
+		const int count = 3;
 		HANDLE thread[count * 2];
 
 		for (int i = 0; i < count; ++i)
