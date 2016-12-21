@@ -1,9 +1,15 @@
-#include <atlstr.h>
+#define WIN32_LEAN_AND_MEAN
+#define STRICT_GS_ENABLED
+#include <atlbase.h>
 #include <windows.h>
+#include <pathcch.h>
 #include <shlwapi.h>
+#include <clocale>
 #include <cstdio>
 #include <cstdlib>
 #include <crtdbg.h>
+#include <string>
+#pragma comment(lib, "pathcch")
 
 [[noreturn]]
 void pwerror()
@@ -26,11 +32,10 @@ int __cdecl main()
 	WCHAR system32[MAX_PATH];
 	ATLENSURE(GetSystemDirectoryW(system32, ARRAYSIZE(system32)));
 	ATLENSURE(SetCurrentDirectoryW(system32));
-	ATL::CStringW format(system32);
-	format += L"\\format.com";
-	ATL::CStringW format_args(format);
-	format_args += L" /FS:ReFS ";
-	format_args += PathGetArgsW(GetCommandLineW());
+	setlocale(LC_ALL, "");
+	WCHAR format[MAX_PATH];
+	ATLENSURE_SUCCEEDED(PathCchCombine(format, ARRAYSIZE(format), system32, L"format.com"));
+	std::wstring format_args = std::wstring(L"\"") + format + L"\" /FS:ReFS " + PathGetArgsW(GetCommandLineW());
 	HKEY MiniNT;
 	if (!IF_REG(RegCreateKeyExW(HKEY_LOCAL_MACHINE, LR"(SYSTEM\CurrentControlSet\Control\MiniNT)", 0, nullptr, REG_OPTION_VOLATILE, KEY_READ, nullptr, &MiniNT, nullptr)))
 	{
@@ -59,7 +64,7 @@ int __cdecl main()
 	});
 	STARTUPINFOW si = { sizeof si };
 	PROCESS_INFORMATION pi;
-	if (!CreateProcessW(format, format_args.GetBuffer(), nullptr, nullptr, FALSE, 0, nullptr, system32, &si, &pi))
+	if (!CreateProcessW(format, &format_args[0], nullptr, nullptr, FALSE, 0, nullptr, system32, &si, &pi))
 	{
 		pwerror();
 	}
