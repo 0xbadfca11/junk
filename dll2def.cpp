@@ -12,7 +12,7 @@ int __cdecl wmain(int argc, PWSTR argv[])
 {
 	while (--argc)
 	{
-		HANDLE h = CreateFileW(argv[argc], FILE_GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
+		HANDLE h = CreateFileW(argv[argc], GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
 		if (h == INVALID_HANDLE_VALUE)
 			continue;
 		HANDLE m = CreateFileMappingW(h, nullptr, PAGE_READONLY | SEC_IMAGE_NO_EXECUTE, 0, 0, nullptr);
