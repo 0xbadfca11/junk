@@ -8,7 +8,7 @@
 
 void PrintfWindowsError(ULONG error_code = GetLastError())
 {
-	thread_local auto msg = std::make_unique<WCHAR[]>(USHRT_MAX);
+	auto msg = std::make_unique<WCHAR[]>(USHRT_MAX);
 	if (!FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error_code, 0, msg.get(), USHRT_MAX, nullptr))
 	{
 		fprintf(stderr, "%lx\n", error_code);

@@ -34,7 +34,10 @@ int __cdecl main(int argc, PSTR argv[])
 	const BYTE mov_edi_edi[2] = { 0x8B, 0xFF };
 	const BYTE xor_ecx_ecx[2] = { 0x33, 0xC9 };
 	if (memcmp(GetProcessDEPPolicy, mov_edi_edi, sizeof(mov_edi_edi)) == 0)
+	{
 		WriteProcessMemory(GetCurrentProcess(), GetProcessDEPPolicy, xor_ecx_ecx, sizeof(xor_ecx_ecx), NULL);
+		FlushInstructionCache(GetCurrentProcess(), GetProcessDEPPolicy, sizeof(xor_ecx_ecx));
+	}
 	else
 		fputs("GetProcessDEPPolicy() entry point is not \"MOV EDI, EDI\"\n", stderr);
 

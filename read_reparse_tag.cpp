@@ -2,67 +2,67 @@
 #include <atlbase.h>
 #include <versionhelpers.h>
 #include <map>
-#include <memory>
+#include <optional>
 #include <stdexcept>
 #include <type_traits>
 #include <cstdio>
 #pragma comment(lib, "advapi32")
 
-typedef decltype(FILE_ATTRIBUTE_TAG_INFO::ReparseTag) REPARSE_TAG;
+using REPARSE_TAG = decltype(FILE_ATTRIBUTE_TAG_INFO::ReparseTag);
 #define TAG_MAP(x) { x, #x }
 
+static const std::map<REPARSE_TAG, PCSTR> tag{ {
+		TAG_MAP(IO_REPARSE_TAG_MOUNT_POINT),
+		TAG_MAP(IO_REPARSE_TAG_HSM),
+		TAG_MAP(IO_REPARSE_TAG_HSM2),
+		TAG_MAP(IO_REPARSE_TAG_SIS),
+		TAG_MAP(IO_REPARSE_TAG_WIM),
+		TAG_MAP(IO_REPARSE_TAG_CSV),
+		TAG_MAP(IO_REPARSE_TAG_DFS),
+		TAG_MAP(IO_REPARSE_TAG_SYMLINK),
+		TAG_MAP(IO_REPARSE_TAG_DFSR),
+		TAG_MAP(IO_REPARSE_TAG_DEDUP),
+		TAG_MAP(IO_REPARSE_TAG_NFS),
+		TAG_MAP(IO_REPARSE_TAG_FILE_PLACEHOLDER),
+		TAG_MAP(IO_REPARSE_TAG_WOF),
+		TAG_MAP(IO_REPARSE_TAG_WCI),
+		TAG_MAP(IO_REPARSE_TAG_GLOBAL_REPARSE),
+		TAG_MAP(IO_REPARSE_TAG_APPEXECLINK),
+		TAG_MAP(IO_REPARSE_TAG_PROJFS),
+		TAG_MAP(IO_REPARSE_TAG_WCI_TOMBSTONE),
+		TAG_MAP(IO_REPARSE_TAG_UNHANDLED),
+		TAG_MAP(IO_REPARSE_TAG_ONEDRIVE),
+		TAG_MAP(IO_REPARSE_TAG_PROJFS_TOMBSTONE),
+		TAG_MAP(IO_REPARSE_TAG_AF_UNIX),
+		{ 0x80000005, "IO_REPARSE_TAG_DRIVER_EXTENDER" },
+		{ 0x8000000B, "IO_REPARSE_TAG_FILTER_MANAGER" },
+		{ 0xA0000010, "IO_REPARSE_TAG_IIS_CACHE" },
+		{ 0xC0000014, "IO_REPARSE_TAG_APPXSTRM" },
+		{ 0x80000016, "IO_REPARSE_TAG_DFM" },
+		{ 0xA000001D, "IO_REPARSE_TAG_LX_SYMLINK" },
+		{ 0x80000024, "IO_REPARSE_TAG_LX_FIFO" },
+		{ 0x80000025, "IO_REPARSE_TAG_LX_CHR" },
+		{ 0x80000026, "IO_REPARSE_TAG_LX_BLK" },
+		{ 0x8000001E, "IO_REPARSE_TAG_HFS" },
+		{ 0x9000001A, "IO_REPARSE_TAG_CLOUD" },
+		{ 0x9000101A, "IO_REPARSE_TAG_CLOUD_1" },
+		{ 0x9000201A, "IO_REPARSE_TAG_CLOUD_2" },
+		{ 0x9000301A, "IO_REPARSE_TAG_CLOUD_3" },
+		{ 0x9000401A, "IO_REPARSE_TAG_CLOUD_4" },
+		{ 0x9000501A, "IO_REPARSE_TAG_CLOUD_5" },
+		{ 0x9000601A, "IO_REPARSE_TAG_CLOUD_6" },
+		{ 0x9000701A, "IO_REPARSE_TAG_CLOUD_7" },
+		{ 0x9000801A, "IO_REPARSE_TAG_CLOUD_8" },
+		{ 0x9000901A, "IO_REPARSE_TAG_CLOUD_9" },
+		{ 0x9000A01A, "IO_REPARSE_TAG_CLOUD_A" },
+		{ 0x9000B01A, "IO_REPARSE_TAG_CLOUD_B" },
+		{ 0x9000C01A, "IO_REPARSE_TAG_CLOUD_C" },
+		{ 0x9000D01A, "IO_REPARSE_TAG_CLOUD_D" },
+		{ 0x9000E01A, "IO_REPARSE_TAG_CLOUD_E" },
+		{ 0x9000F01A, "IO_REPARSE_TAG_CLOUD_F" },
+		} };
 PCSTR ReparseTagToString(REPARSE_TAG tab_value)
 {
-	static const std::map<REPARSE_TAG, PCSTR> tag{ {
-			TAG_MAP(IO_REPARSE_TAG_MOUNT_POINT),
-			TAG_MAP(IO_REPARSE_TAG_HSM),
-			TAG_MAP(IO_REPARSE_TAG_HSM2),
-			TAG_MAP(IO_REPARSE_TAG_SIS),
-			TAG_MAP(IO_REPARSE_TAG_WIM),
-			TAG_MAP(IO_REPARSE_TAG_CSV),
-			TAG_MAP(IO_REPARSE_TAG_DFS),
-			TAG_MAP(IO_REPARSE_TAG_SYMLINK),
-			TAG_MAP(IO_REPARSE_TAG_DFSR),
-			TAG_MAP(IO_REPARSE_TAG_DEDUP),
-			TAG_MAP(IO_REPARSE_TAG_NFS),
-			TAG_MAP(IO_REPARSE_TAG_FILE_PLACEHOLDER),
-			TAG_MAP(IO_REPARSE_TAG_WOF),
-			TAG_MAP(IO_REPARSE_TAG_WCI),
-			TAG_MAP(IO_REPARSE_TAG_GLOBAL_REPARSE),
-			TAG_MAP(IO_REPARSE_TAG_APPEXECLINK),
-			TAG_MAP(IO_REPARSE_TAG_PROJFS),
-			TAG_MAP(IO_REPARSE_TAG_WCI_TOMBSTONE),
-			TAG_MAP(IO_REPARSE_TAG_UNHANDLED),
-			TAG_MAP(IO_REPARSE_TAG_ONEDRIVE),
-			TAG_MAP(IO_REPARSE_TAG_PROJFS_TOMBSTONE),
-			TAG_MAP(IO_REPARSE_TAG_AF_UNIX),
-			{ 0x80000005, "IO_REPARSE_TAG_DRIVER_EXTENDER" },
-			{ 0x8000000B, "IO_REPARSE_TAG_FILTER_MANAGER" },
-			{ 0xA0000010, "IO_REPARSE_TAG_IIS_CACHE" },
-			{ 0xC0000014, "IO_REPARSE_TAG_APPXSTRM" },
-			{ 0x80000016, "IO_REPARSE_TAG_DFM" },
-			{ 0xA000001D, "IO_REPARSE_TAG_LX_SYMLINK" },
-			{ 0x80000024, "IO_REPARSE_TAG_LX_FIFO" },
-			{ 0x80000025, "IO_REPARSE_TAG_LX_CHR" },
-			{ 0x80000026, "IO_REPARSE_TAG_LX_BLK" },
-			{ 0x8000001E, "IO_REPARSE_TAG_HFS" },
-			{ 0x9000001A, "IO_REPARSE_TAG_CLOUD" },
-			{ 0x9000101A, "IO_REPARSE_TAG_CLOUD_1" },
-			{ 0x9000201A, "IO_REPARSE_TAG_CLOUD_2" },
-			{ 0x9000301A, "IO_REPARSE_TAG_CLOUD_3" },
-			{ 0x9000401A, "IO_REPARSE_TAG_CLOUD_4" },
-			{ 0x9000501A, "IO_REPARSE_TAG_CLOUD_5" },
-			{ 0x9000601A, "IO_REPARSE_TAG_CLOUD_6" },
-			{ 0x9000701A, "IO_REPARSE_TAG_CLOUD_7" },
-			{ 0x9000801A, "IO_REPARSE_TAG_CLOUD_8" },
-			{ 0x9000901A, "IO_REPARSE_TAG_CLOUD_9" },
-			{ 0x9000A01A, "IO_REPARSE_TAG_CLOUD_A" },
-			{ 0x9000B01A, "IO_REPARSE_TAG_CLOUD_B" },
-			{ 0x9000C01A, "IO_REPARSE_TAG_CLOUD_C" },
-			{ 0x9000D01A, "IO_REPARSE_TAG_CLOUD_D" },
-			{ 0x9000E01A, "IO_REPARSE_TAG_CLOUD_E" },
-			{ 0x9000F01A, "IO_REPARSE_TAG_CLOUD_F" },
-			} };
 	auto it = tag.find(tab_value);
 	if (it != tag.end())
 	{
@@ -73,7 +73,7 @@ PCSTR ReparseTagToString(REPARSE_TAG tab_value)
 		return nullptr;
 	}
 }
-std::unique_ptr<REPARSE_TAG> ReadReparseTagByFindFile(_In_z_ PCWSTR filename)
+std::optional<REPARSE_TAG> ReadReparseTagByFindFile(_In_z_ PCWSTR filename)
 {
 	WIN32_FIND_DATAW find_data;
 	HANDLE find = FindFirstFileExW(
@@ -82,17 +82,17 @@ std::unique_ptr<REPARSE_TAG> ReadReparseTagByFindFile(_In_z_ PCWSTR filename)
 		&find_data,
 		FindExSearchNameMatch,
 		nullptr,
-		0
+		FIND_FIRST_EX_CASE_SENSITIVE
 	);
 	if (find == INVALID_HANDLE_VALUE)
 		throw std::runtime_error("FindFirstFileEx");
 	FindClose(find);
 	if (find_data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
-		return std::make_unique<REPARSE_TAG>(find_data.dwReserved0);
+		return find_data.dwReserved0;
 	else
-		return nullptr;
+		return std::nullopt;
 }
-std::unique_ptr<REPARSE_TAG> ReadReparseTagByHandle(_In_z_ PCWSTR filename)
+std::optional<REPARSE_TAG> ReadReparseTagByHandle(_In_z_ PCWSTR filename)
 {
 	ATL::CHandle file(CreateFileW(
 		filename,
@@ -112,9 +112,9 @@ std::unique_ptr<REPARSE_TAG> ReadReparseTagByHandle(_In_z_ PCWSTR filename)
 	if (!GetFileInformationByHandleEx(file, FileAttributeTagInfo, &file_tag_info, sizeof file_tag_info))
 		throw std::runtime_error("GetFileInformationByHandleEx");
 	if (file_tag_info.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
-		return std::make_unique<REPARSE_TAG>(file_tag_info.ReparseTag);
+		return file_tag_info.ReparseTag;
 	else
-		return nullptr;
+		return std::nullopt;
 }
 
 int __cdecl wmain(int argc, PWSTR argv[])

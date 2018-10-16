@@ -1,10 +1,11 @@
 #include <windows.h>
+#include <process.h>
 #include <stdio.h>
 #include <assert.h>
 
 const WCHAR Dll[] = L"dll";
 
-DWORD WINAPI start_address(void*)
+unsigned __stdcall start_address(void*)
 {
 	printf("[% 8lx] " __FUNCSIG__ "\n", GetCurrentThreadId());
 
@@ -24,14 +25,14 @@ int __cdecl main()
 {
 	printf("[% 8x] " __FUNCSIG__ "\n", GetCurrentThreadId());
 
-	WaitForSingleObject(CreateThread(nullptr, 0, [](void*)->DWORD {
+	WaitForSingleObject((HANDLE)_beginthreadex(nullptr, 0, [](void*)->unsigned {
 		const int count = 3;
 		HANDLE thread[count * 2];
 
 		for (int i = 0; i < count; ++i)
 		{
-			DWORD thread_id;
-			thread[i * 2] = CreateThread(nullptr, 0, start_address, nullptr, 0, &thread_id);
+			unsigned thread_id;
+			thread[i * 2] = (HANDLE)_beginthreadex(nullptr, 0, start_address, nullptr, 0, &thread_id);
 			printf("[% 8lx] CreateThread [% 8lx]\n", GetCurrentThreadId(), thread_id);
 		}
 
@@ -41,8 +42,8 @@ int __cdecl main()
 
 		for (int i = 0; i < count; ++i)
 		{
-			DWORD thread_id;
-			thread[i * 2 + 1] = CreateThread(nullptr, 0, start_address, nullptr, 0, &thread_id);
+			unsigned thread_id;
+			thread[i * 2 + 1] = (HANDLE)_beginthreadex(nullptr, 0, start_address, nullptr, 0, &thread_id);
 			printf("[% 8lx] CreateThread [% 8lx]\n", GetCurrentThreadId(), thread_id);
 		}
 

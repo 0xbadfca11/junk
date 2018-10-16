@@ -31,7 +31,7 @@ struct EXCEPTION_REGISTRATION_RECORD32
 	EXCEPTION_ROUTINE* UPOINTER_32 Handler;
 };
 #include <poppack.h>
-static_assert(sizeof(EXCEPTION_REGISTRATION_RECORD32) == 8, "EXCEPTION_REGISTRATION_RECORD32 != 8");
+static_assert(sizeof(EXCEPTION_REGISTRATION_RECORD32) == 8);
 struct _TEB
 {
 	NT_TIB Tib;
@@ -76,7 +76,7 @@ struct SEH_Walk
 	}
 	void SEH_Chain_Walk() const
 	{
-#ifndef _WIN64
+#ifdef _M_IX86
 		if (thread_id == GetCurrentThreadId())
 			for (auto address = NtCurrentTeb()->Tib.ExceptionList; PtrToUlong(address) != ULONG_MAX; address = address->Next)
 			{
@@ -86,7 +86,7 @@ struct SEH_Walk
 					_T("Handler->%p(%ls!%s):Next->%p\n"),
 					address->Handler,
 					module_file_name ? PathFindFileNameW(module_file_name.get()) : nullptr,
-					symbol ? reinterpret_cast<_TCHAR*>(symbol.get() + FIELD_OFFSET(SYMBOL_INFO, Name)) : nullptr,
+					symbol ? symbol->si.Name : nullptr,
 					address->Next
 				);
 			}
@@ -133,7 +133,7 @@ struct SEH_Walk
 					_T("Handler->%08lX(%ls!%s):Next->%08lX\n"),
 					PtrToUlong(exception_record.Handler),
 					module_file_name ? PathFindFileNameW(module_file_name.get()) : nullptr,
-					symbol ? reinterpret_cast<_TCHAR*>(symbol.get() + FIELD_OFFSET(SYMBOL_INFO, Name)) : nullptr,
+					symbol ? symbol->si.Name : nullptr,
 					PtrToUlong(exception_record.Next)
 				);
 			}
@@ -152,14 +152,12 @@ protected:
 		else
 			return nullptr;
 	}
-	// return SYMBOL_INFO*
-	std::unique_ptr<BYTE[]> GetSymbolFromAddress(_In_ PVOID address) const
+	std::unique_ptr<SYMBOL_INFO_PACKAGE> GetSymbolFromAddress(_In_ PVOID address) const
 	{
-		auto symbol = std::make_unique<BYTE[]>(FIELD_OFFSET(SYMBOL_INFO, Name[MAX_SYM_NAME]));
-		PSYMBOL_INFO symbol_info = reinterpret_cast<PSYMBOL_INFO>(symbol.get());
-		symbol_info->SizeOfStruct = sizeof(SYMBOL_INFO);
-		symbol_info->MaxNameLen = MAX_SYM_NAME;
-		if (SymFromAddr(process, PtrToUlong(address), nullptr, symbol_info))
+		auto symbol = std::make_unique<SYMBOL_INFO_PACKAGE>();
+		symbol->si.SizeOfStruct = sizeof(SYMBOL_INFO);
+		symbol->si.MaxNameLen = MAX_SYM_NAME;
+		if (SymFromAddr(process, PtrToUlong(address), nullptr, &symbol->si))
 			return symbol;
 		else
 			return nullptr;

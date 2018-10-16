@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <memory>
 #include <cstdlib>
-#pragma comment( lib, "pathcch" )
+#pragma comment(lib, "pathcch")
 
 struct StorageResiliency
 {
