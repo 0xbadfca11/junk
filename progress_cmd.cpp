@@ -16,7 +16,7 @@ struct ProgressTaskBar
 		: hwnd(hwnd)
 		, Total(Total)
 	{
-		if (FAILED(CoInitialize(nullptr)))
+		if (FAILED(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
 			ATL::AtlThrowLastWin32();
 		if (FAILED(TaskbarList.CoCreateInstance(CLSID_TaskbarList)))
 			ATL::AtlThrowLastWin32();
