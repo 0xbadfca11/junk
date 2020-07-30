@@ -32,7 +32,8 @@ void f()
 //* printf might be DllMain rule violation */
 BOOL WINAPI DllMain(HINSTANCE, DWORD dwReason, LPVOID)
 {
-	switch (dwReason) {
+	switch (dwReason)
+	{
 	case DLL_PROCESS_ATTACH:
 		printf("[% 8lx] DLL_PROCESS_ATTACH\n", GetCurrentThreadId());
 		break;
@@ -45,7 +46,8 @@ BOOL WINAPI DllMain(HINSTANCE, DWORD dwReason, LPVOID)
 	case DLL_PROCESS_DETACH:
 		printf("[% 8lx] DLL_PROCESS_DETACH\n", GetCurrentThreadId());
 		break;
-	DEFAULT_UNREACHABLE;
+	default:
+		__assume(0);
 	}
 	return TRUE;
 }
