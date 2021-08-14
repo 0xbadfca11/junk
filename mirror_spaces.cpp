@@ -10,9 +10,9 @@
 
 struct StorageResiliency
 {
-	const ATL::CHandle file_handle;
+	ATL::CHandle file_handle;
 	using CopiesType = decltype(STORAGE_DEVICE_RESILIENCY_DESCRIPTOR::NumberOfPhysicalCopies);
-	const CopiesType CopiesCount = 0;
+	CopiesType CopiesCount = 0;
 	StorageResiliency(
 		PCWSTR lpFileName,
 		ULONG dwDesiredAccess,
@@ -23,35 +23,23 @@ struct StorageResiliency
 		HANDLE hTemplateFile = nullptr
 	)
 	{
-		const_cast<ATL::CHandle&>(file_handle).Attach(Create(lpFileName, dwDesiredAccess, dwShareMode, dwCreationDisposition, dwFlagsAndAttributes | FILE_FLAG_NO_BUFFERING, lpSecurityAttributes, hTemplateFile));
-		if (!file_handle)
-		{
-			ATL::AtlThrowLastWin32();
-		}
+		file_handle.Attach(Create(lpFileName, dwDesiredAccess, dwShareMode, dwCreationDisposition, dwFlagsAndAttributes | FILE_FLAG_NO_BUFFERING, lpSecurityAttributes, hTemplateFile));
+		ATLENSURE(file_handle);
 		auto path = std::make_unique<WCHAR[]>(PATHCCH_MAX_CCH);
-		if (!GetVolumePathNameW(lpFileName, path.get(), PATHCCH_MAX_CCH))
-		{
-			ATL::AtlThrowLastWin32();
-		}
+		ATLENSURE(GetVolumePathNameW(lpFileName, path.get(), PATHCCH_MAX_CCH));
 		WCHAR volume_GUID[50];
-		if (!GetVolumeNameForVolumeMountPointW(path.get(), volume_GUID, ARRAYSIZE(volume_GUID)))
-		{
-			ATL::AtlThrowLastWin32();
-		}
+		ATLENSURE(GetVolumeNameForVolumeMountPointW(path.get(), volume_GUID, ARRAYSIZE(volume_GUID)));
 		*wcsrchr(volume_GUID, L'\\') = L'\0';
 		ATL::CHandle volume_handle;
 		volume_handle.Attach(Create(volume_GUID, 0, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_EXISTING, FILE_FLAG_NO_BUFFERING, nullptr, nullptr));
-		if (!volume_handle)
-		{
-			ATL::AtlThrowLastWin32();
-		}
+		ATLENSURE(volume_handle);
 		STORAGE_PROPERTY_QUERY storage_query = { StorageDeviceResiliencyProperty, PropertyStandardQuery };
 		STORAGE_DEVICE_RESILIENCY_DESCRIPTOR storage_resiliency;
 		ULONG junk;
 		if (DeviceIoControl(volume_handle, IOCTL_STORAGE_QUERY_PROPERTY, &storage_query, sizeof storage_query, &storage_resiliency, sizeof storage_resiliency, &junk, nullptr))
-			const_cast<CopiesType&>(CopiesCount) = storage_resiliency.NumberOfPhysicalCopies;
+			CopiesCount = storage_resiliency.NumberOfPhysicalCopies;
 	}
-	HANDLE Create(
+	static HANDLE Create(
 		PCWSTR lpFileName,
 		ULONG dwDesiredAccess,
 		ULONG dwShareMode,
@@ -91,6 +79,7 @@ struct StorageResiliency
 		return DeviceIoControl(file_handle, FSCTL_REPAIR_COPIES, &input, sizeof input, &output, sizeof output, &junk, nullptr) != 0;
 	}
 };
+
 #include <bcrypt.h>
 #include <wincrypt.h>
 #include <winternl.h>
@@ -98,6 +87,7 @@ struct StorageResiliency
 #include <cstdio>
 #pragma comment(lib, "bcrypt")
 #pragma comment(lib, "crypt32")
+
 int wmain(int argc, PWSTR argv[])
 {
 	if (argc < 2)
@@ -106,48 +96,32 @@ int wmain(int argc, PWSTR argv[])
 
 	const StorageResiliency stor_res{ argv[1], FILE_READ_DATA | FILE_READ_ATTRIBUTES | FILE_WRITE_DATA, FILE_SHARE_READ, OPEN_EXISTING };
 	LARGE_INTEGER fsize;
-	if (!GetFileSizeEx(stor_res, &fsize))
+	ATLENSURE(GetFileSizeEx(stor_res, &fsize));
+	ULONG msize = (ULONG)std::min<ULONG64>(fsize.QuadPart, 128 * 1024 * 1024) / 4096 * 4096;
+	if (!msize)
 		std::quick_exit(EXIT_FAILURE);
-	ULONG msize = (ULONG)std::min<ULONG64>(fsize.QuadPart, 128 * 1024 * 1024);
 	PVOID buf = VirtualAlloc(nullptr, msize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-	if (!buf)
-		std::quick_exit(EXIT_FAILURE);
+	ATLENSURE(buf);
 	ULONG result;
 	union {
 		ULONG hash_size;
 		BYTE hash_size_bytes[ANYSIZE_ARRAY];
 	};
 	const BCRYPT_ALG_HANDLE Algorithm = BCRYPT_SHA384_ALG_HANDLE;
-	if (NT_ERROR(BCryptGetProperty(Algorithm, BCRYPT_HASH_LENGTH, hash_size_bytes, sizeof hash_size, &result, 0)))
-	{
-		ATL::AtlThrowLastWin32();
-	}
+	ATLENSURE(NT_SUCCESS(BCryptGetProperty(Algorithm, BCRYPT_HASH_LENGTH, hash_size_bytes, sizeof hash_size, &result, 0)));
 	for (ULONG i = 0, end = stor_res.CopiesCount; i < end; i++)
 	{
-		if (!stor_res.SwitchCopy(i))
-		{
-			ATL::AtlThrowLastWin32();
-		}
+		ATLENSURE(stor_res.SwitchCopy(i));
 		ULONG read;
 		OVERLAPPED o = {};
-		if (!ReadFile(stor_res, buf, msize, &read, &o))
-			std::quick_exit(EXIT_FAILURE);
+		ATLENSURE(ReadFile(stor_res, buf, msize, &read, &o));
 		ATL::CTempBuffer<BYTE> hash{ hash_size };
-		if (NT_ERROR(BCryptHash(Algorithm, nullptr, 0, (PBYTE)buf, msize, hash, hash_size)))
-		{
-			ATL::AtlThrowLastWin32();
-		}
+		ATLENSURE(NT_SUCCESS(BCryptHash(Algorithm, nullptr, 0, (PBYTE)buf, msize, hash, hash_size)));
 		ULONG hash_stringize_size = hash_size * 2 + 1;
 		ATL::CTempBuffer<char> hash_stringize{ hash_stringize_size };
-		if (!CryptBinaryToStringA(hash, hash_size, CRYPT_STRING_HEXRAW | CRYPT_STRING_NOCRLF, hash_stringize, &hash_stringize_size))
-		{
-			ATL::AtlThrowLastWin32();
-		}
+		ATLENSURE(CryptBinaryToStringA(hash, hash_size, CRYPT_STRING_HEXRAW | CRYPT_STRING_NOCRLF, hash_stringize, &hash_stringize_size));
 		puts(hash_stringize);
 	}
-	if (stor_res.CopiesCount && !stor_res.ResetCopy())
-	{
-		ATL::AtlThrowLastWin32();
-	}
+	ATLENSURE(stor_res.CopiesCount == 0 || stor_res.ResetCopy());
 	std::quick_exit(EXIT_SUCCESS);
 }
