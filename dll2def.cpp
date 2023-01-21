@@ -19,7 +19,7 @@ int __cdecl wmain(int argc, PWSTR argv[])
 		CloseHandle(h);
 		if (!m)
 			continue;
-		std::shared_ptr<char> base_address(reinterpret_cast<char*>(MapViewOfFile(m, FILE_MAP_READ, 0, 0, 0)), UnmapViewOfFile);
+		std::shared_ptr<char> base_address(static_cast<char*>(MapViewOfFile(m, FILE_MAP_READ, 0, 0, 0)), UnmapViewOfFile);
 		CloseHandle(m);
 		if (!base_address)
 			continue;
